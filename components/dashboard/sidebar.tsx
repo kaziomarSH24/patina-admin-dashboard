@@ -8,10 +8,12 @@ export function Sidebar({
   active,
   onNavigate,
   onClose,
+  onLogout,
 }: {
   active: ViewKey
   onNavigate: (key: ViewKey) => void
   onClose?: () => void
+  onLogout?: () => void
 }) {
   return (
     <aside className="flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar">
@@ -87,6 +89,7 @@ export function Sidebar({
             </p>
           </div>
           <button
+            onClick={onLogout}
             className="text-muted-foreground transition-colors hover:text-sidebar-foreground"
             aria-label="Sign out"
           >

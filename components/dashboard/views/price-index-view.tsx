@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { priceIndex, formatCurrency } from '@/lib/mock-data'
 import { Panel, PanelToolbar, Th, Td } from '@/components/dashboard/panel'
 import { Button } from '@/components/ui/button'
@@ -50,7 +51,14 @@ export function PriceIndexView() {
         countLabel="models tracked"
         searchPlaceholder="Search model or reference..."
       >
-        <Button className="bg-gold text-primary-foreground hover:bg-gold/90">
+        <Button 
+          className="bg-gold text-primary-foreground hover:bg-gold/90"
+          onClick={() => toast.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
+            loading: 'Fetching latest market prices...',
+            success: 'Market prices updated successfully',
+            error: 'Failed to update prices'
+          })}
+        >
           <RefreshCw className="size-4" />
           Manual Price Update
         </Button>

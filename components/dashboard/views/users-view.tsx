@@ -1,10 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { History, ShieldCheck, UserX } from 'lucide-react'
-import { users } from '@/lib/mock-data'
+import { toast } from 'sonner'
+import { users, type User } from '@/lib/mock-data'
 import { Panel, PanelToolbar, Th, Td } from '@/components/dashboard/panel'
 import { StatusBadge, kycTone } from '@/components/dashboard/status-badge'
 import { Button } from '@/components/ui/button'
+import { UserHistoryModal } from '@/components/dashboard/user-history-modal'
+import { KycVerificationModal } from '@/components/dashboard/kyc-verification-modal'
 
 function standingTone(s: string) {
   if (s === 'Good') return 'success' as const
@@ -13,8 +17,12 @@ function standingTone(s: string) {
 }
 
 export function UsersView() {
+  const [historyUser, setHistoryUser] = useState<User | null>(null)
+  const [kycUser, setKycUser] = useState<User | null>(null)
+
   return (
-    <Panel>
+    <>
+      <Panel>
       <PanelToolbar
         count={users.length}
         countLabel="users"
@@ -73,13 +81,19 @@ export function UsersView() {
                 </Td>
                 <Td className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button size="icon-sm" variant="ghost" aria-label="View history">
+                    <Button 
+                      size="icon-sm" 
+                      variant="ghost" 
+                      aria-label="View history"
+                      onClick={() => setHistoryUser(u)}
+                    >
                       <History className="size-4" />
                     </Button>
                     <Button
                       size="icon-sm"
                       variant="ghost"
                       aria-label="Trigger KYC check"
+                      onClick={() => setKycUser(u)}
                     >
                       <ShieldCheck className="size-4" />
                     </Button>
@@ -88,6 +102,7 @@ export function UsersView() {
                       variant="ghost"
                       className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                       aria-label="Suspend account"
+                      onClick={() => toast.error(`Account suspended for ${u.name}`)}
                     >
                       <UserX className="size-4" />
                     </Button>
@@ -99,5 +114,16 @@ export function UsersView() {
         </table>
       </div>
     </Panel>
+
+    <UserHistoryModal 
+      user={historyUser} 
+      onClose={() => setHistoryUser(null)} 
+    />
+    
+    <KycVerificationModal 
+      user={kycUser} 
+      onClose={() => setKycUser(null)} 
+    />
+    </>
   )
 }

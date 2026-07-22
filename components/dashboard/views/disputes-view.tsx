@@ -8,21 +8,70 @@ import {
   Clock,
   MessageSquare,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { disputes, formatCurrency } from '@/lib/mock-data'
 import { StatusBadge } from '@/components/dashboard/status-badge'
 import { Button } from '@/components/ui/button'
 
 export function DisputesView() {
+  const [disputesList, setDisputesList] = useState(
+    disputes.map(d => ({ ...d, resolveState: 'open' as 'open' | 'seller' | 'buyer' }))
+  )
+  const [filter, setFilter] = useState<'open' | 'resolved'>('open')
+
+  const handleResolve = (id: string, resolution: 'seller' | 'buyer') => {
+    setDisputesList(prev => prev.map(d => d.id === id ? { ...d, resolveState: resolution } : d))
+  }
+
+  const filteredDisputes = disputesList.filter(d => 
+    filter === 'open' ? d.resolveState === 'open' : d.resolveState !== 'open'
+  )
+
   return (
     <div className="space-y-5">
-      {disputes.map((d) => (
-        <DisputeCard key={d.id} dispute={d} />
-      ))}
+      {/* Tabs */}
+      <div className="flex items-center gap-2 border-b border-border pb-4">
+        <button
+          onClick={() => setFilter('open')}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            filter === 'open' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+          }`}
+        >
+          Open Disputes ({disputesList.filter(d=>d.resolveState==='open').length})
+        </button>
+        <button
+          onClick={() => setFilter('resolved')}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            filter === 'resolved' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+          }`}
+        >
+          Resolved ({disputesList.filter(d=>d.resolveState!=='open').length})
+        </button>
+      </div>
+
+      {filteredDisputes.length === 0 ? (
+        <div className="flex h-40 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 text-muted-foreground">
+          <ShieldAlert className="mb-2 size-6 opacity-50" />
+          <p className="text-sm font-medium">No {filter} disputes</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {filteredDisputes.map((d) => (
+            <DisputeCard key={d.id} dispute={d} onResolve={handleResolve} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-function DisputeCard({ dispute }: { dispute: (typeof disputes)[number] }) {
+function DisputeCard({ 
+  dispute, 
+  onResolve 
+}: { 
+  dispute: (typeof disputes)[number] & { resolveState?: 'open' | 'seller' | 'buyer' }
+  onResolve: (id: string, resolution: 'seller' | 'buyer') => void
+}) {
   const [note, setNote] = useState('')
   const overdue = dispute.ageHours > 48
 
@@ -40,9 +89,15 @@ function DisputeCard({ dispute }: { dispute: (typeof disputes)[number] }) {
             <h3 className="font-display font-semibold text-card-foreground">
               {dispute.watch}
             </h3>
-            <StatusBadge tone="danger" dot>
-              Disputed
-            </StatusBadge>
+            {dispute.resolveState === 'open' ? (
+              <StatusBadge tone="danger" dot>
+                Disputed
+              </StatusBadge>
+            ) : (
+              <StatusBadge tone="success">
+                Resolved
+              </StatusBadge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
             {dispute.id} · Transaction {dispute.txnId} ·{' '}
@@ -97,16 +152,40 @@ function DisputeCard({ dispute }: { dispute: (typeof disputes)[number] }) {
           placeholder="Add a private note for the ops team..."
           className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
         />
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button className="bg-success text-success-foreground hover:bg-success/90">
-            <ArrowRight className="size-4" />
-            Resolve: Release to Seller
-          </Button>
-          <Button variant="destructive">
-            <Undo2 className="size-4" />
-            Resolve: Refund Buyer
-          </Button>
-        </div>
+        {dispute.resolveState === 'open' ? (
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button 
+              className="bg-success text-success-foreground hover:bg-success/90"
+              onClick={() => {
+                toast.success(`Dispute ${dispute.id} resolved: Funds released to ${dispute.seller.name}`)
+                onResolve(dispute.id, 'seller')
+              }}
+            >
+              <ArrowRight className="size-4" />
+              Resolve: Release to Seller
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                toast.info(`Dispute ${dispute.id} resolved: Refunded ${dispute.buyer.name}`)
+                onResolve(dispute.id, 'buyer')
+              }}
+            >
+              <Undo2 className="size-4" />
+              Resolve: Refund Buyer
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center justify-end">
+            <span className="text-sm font-medium text-muted-foreground flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg border border-border">
+              {dispute.resolveState === 'seller' ? (
+                <>Funds released to <strong className="text-foreground">{dispute.seller.name}</strong></>
+              ) : (
+                <>Funds refunded to <strong className="text-foreground">{dispute.buyer.name}</strong></>
+              )}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -13,7 +13,7 @@ import { EscrowView } from './views/escrow-view'
 import { DisputesView } from './views/disputes-view'
 import { PriceIndexView } from './views/price-index-view'
 
-export function Dashboard() {
+export function Dashboard({ onLogout }: { onLogout?: () => void }) {
   const [view, setView] = useState<ViewKey>('analytics')
   const [mobileNav, setMobileNav] = useState(false)
   const meta = viewTitles[view]
@@ -22,7 +22,7 @@ export function Dashboard() {
     <div className="flex h-dvh overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
-        <Sidebar active={view} onNavigate={setView} />
+        <Sidebar active={view} onNavigate={setView} onLogout={onLogout} />
       </div>
 
       {/* Mobile sidebar */}
@@ -45,6 +45,7 @@ export function Dashboard() {
               active={view}
               onNavigate={setView}
               onClose={() => setMobileNav(false)}
+              onLogout={onLogout}
             />
           </div>
         </div>

@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { Check, X, ChevronsUpDown } from 'lucide-react'
+import { toast } from 'sonner'
 import { dealers } from '@/lib/mock-data'
 import { Panel, PanelToolbar, Th, Td } from '@/components/dashboard/panel'
 import { StatusBadge } from '@/components/dashboard/status-badge'
@@ -20,6 +22,29 @@ const tierTone: Record<string, 'gold' | 'neutral' | 'info'> = {
 }
 
 export function DealersView() {
+  const [dealersList, setDealersList] = useState(dealers)
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
+
+  const handleApprove = (id: string, business: string) => {
+    setDealersList(prev => prev.map(d => 
+      d.id === id ? { ...d, subscription: 'Active', tier: d.requestedTier || d.tier, requestedTier: undefined } : d
+    ))
+    toast.success(`${business} dealer application approved`)
+  }
+
+  const handleReject = (id: string, business: string) => {
+    setDealersList(prev => prev.filter(d => d.id !== id))
+    toast.error(`${business} application rejected and removed`)
+  }
+
+  const handleTierChange = (id: string, business: string, newTier: string) => {
+    setDealersList(prev => prev.map(d => 
+      d.id === id ? { ...d, tier: newTier } : d
+    ))
+    setOpenDropdownId(null)
+    toast.success(`${business} tier upgraded to ${newTier}`)
+  }
+
   return (
     <Panel>
       <PanelToolbar
@@ -39,7 +64,7 @@ export function DealersView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {dealers.map((d) => {
+            {dealersList.map((d) => {
               const pct = Math.round((d.creditsUsed / d.creditsTotal) * 100)
               const isApp = d.subscription === 'Application'
               return (
@@ -94,20 +119,46 @@ export function DealersView() {
                           <Button
                             size="sm"
                             className="bg-success text-success-foreground hover:bg-success/90"
+                            onClick={() => handleApprove(d.id, d.business)}
                           >
                             <Check className="size-3.5" />
                             Approve
                           </Button>
-                          <Button size="sm" variant="destructive">
+                          <Button size="sm" variant="destructive" onClick={() => handleReject(d.id, d.business)}>
                             <X className="size-3.5" />
                             Reject
                           </Button>
                         </>
                       ) : (
-                        <Button size="sm" variant="outline">
-                          <ChevronsUpDown className="size-3.5" />
-                          Change tier
-                        </Button>
+                        <div className="relative">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => setOpenDropdownId(openDropdownId === d.id ? null : d.id)}
+                          >
+                            <ChevronsUpDown className="size-3.5" />
+                            Change tier
+                          </Button>
+                          
+                          {openDropdownId === d.id && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdownId(null)} aria-hidden />
+                              <div className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-xl">
+                                {['Platinum', 'Gold', 'Silver', 'Bronze'].map((tierOption) => (
+                                  <button
+                                    key={tierOption}
+                                    onClick={() => handleTierChange(d.id, d.business, tierOption)}
+                                    className={`w-full px-3 py-2 text-left text-sm hover:bg-muted ${
+                                      d.tier === tierOption ? 'font-medium text-gold' : 'text-foreground'
+                                    }`}
+                                  >
+                                    {tierOption}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   </Td>
